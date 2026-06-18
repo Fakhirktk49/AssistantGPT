@@ -1,6 +1,8 @@
 from django.urls import path
-from assistant_gpt.views import chat
+from assistant_gpt.views import home,login,register
 
 urlpatterns=[
-    path('chat/',chat,name='chat')
+    path('home/',home,name='home'),
+    path('login/',login,name='login'),
+    path('register/',register,name='register')
 ]

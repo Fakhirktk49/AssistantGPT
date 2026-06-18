@@ -1,8 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser,BaseUserManager
+import uuid
 # Create your models here.
 PLAN_CHOICES=(('Free','Free'),
               ('Premium',"Premium"))
+
+ROLE_CHOICES=(('system','system'),
+              ('user','user'))
 
 
 class User(BaseUserManager):
@@ -54,4 +58,18 @@ class CustomUser(AbstractBaseUser):
     
     def has_module_perms(self,app_label):
         return self.is_superuser
+    
+
+class Chat(models.Model):
+    user=models.ForeignKey(CustomUser,on_delete=models.CASCADE)
+    id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
+    title=models.CharField(max_length=255)
+
+class Messages_table(models.Model):
+    chat=models.ForeignKey(Chat,on_delete=models.CASCADE)
+    msg=models.TextField()
+    role=models.CharField(choices=ROLE_CHOICES)
+
+    
+    
     

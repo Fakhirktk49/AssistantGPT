@@ -4,7 +4,7 @@ from openai import OpenAI
 from django.http import JsonResponse
 
 # Create your views here.
-def chat(request):
+def home(request):
     if request.method == 'POST':
         try:
             if 'user_data' in request.session:
@@ -72,5 +72,11 @@ def chat(request):
                 error={'label':'some exception occured.'}
                 return JsonResponse(error,safe=False)
 
-    return render(request,'assistant_gpt/sentiment.html')
+    return render(request,'assistant_gpt/home.html')
+
+def login(request):
+     return render(request,'assistant_gpt/login.html')
+
+def register(request):
+     return render(request,'assistant_gpt/register.html')
 
