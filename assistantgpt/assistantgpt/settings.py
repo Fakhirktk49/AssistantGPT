@@ -37,7 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'assistant_gpt'
+    'assistant_gpt',
+    'core'
 ]
 
 MIDDLEWARE = [
@@ -120,3 +121,6 @@ STATIC_URL = 'static/'
 SESSION_ENGINE='django.contrib.sessions.backends.file'
 SESSION_FILE_PATH=BASE_DIR/'sessions'
 SESSION_EXPIRE_AT_BROWSER_CLOSE=True
+
+
+AUTH_USER_MODEL='core.CustomUser'
