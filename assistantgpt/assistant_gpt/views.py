@@ -15,6 +15,8 @@ from .utils import email_sender
 from core.models import CustomUser,Chat
 import json
 from decouple import config
+from django.contrib.auth.decorators import login_required
+from django.utils.html import escape
 
 
 # Create your views here.
@@ -187,17 +189,23 @@ def loginview(request):
             
     return render(request,'assistant_gpt/login.html')
 
+@login_required
 def create_chat(request):
     data=json.loads(request.body)
     title=data['title']
+    title=title.strip()
+    title=escape(title)
+    if len(title) >= 50:
+        return JsonResponse({'error':'Title must be less than 50 characters.'},status=400)
     chat=Chat.objects.create(user=request.user,title=title)
     response={'chat_id':chat.id}
     return JsonResponse(data=response)
 
+
 def chats(request):
     if request.user.is_authenticated:
         user=request.user
-        chats=Chat.objects.select_related('user').filter(user=user).values('id','title').order_by('-reverse')
+        chats=Chat.objects.select_related('user').filter(user=user).values('id','title').order_by('-created_at')
        
         chats=list(chats)
         for c in chats:

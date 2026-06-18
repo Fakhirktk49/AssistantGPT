@@ -501,7 +501,7 @@ logoutModal.addEventListener("click", (e) => {
     }
 });
 
-const IS_AUTHENTICATED = {% if user.is_authenticated %}true{% else %}false{% endif %};
+const IS_AUTHENTICATED = {{ user.is_authenticated|yesno:"true,false" }};
 
 const newChatBtn = document.getElementById("newChatBtn");
 const newChatModal = document.getElementById("newChatModal");
@@ -551,6 +551,12 @@ createChatBtn.addEventListener("click", async () => {
 
         const data = await res.json();
 
+        /* ❗ IMPORTANT ERROR HANDLING */
+        if (!res.ok) {
+            alert(data.error || "Something went wrong");
+            return;
+        }
+
         newChatModal.classList.add("hidden");
         chatTitleInput.value = "";
 
@@ -559,10 +565,8 @@ createChatBtn.addEventListener("click", async () => {
         loadChat(data.chat_id);
 
     } catch (err) {
-
         console.error(err);
-        alert("Failed to create chat.");
-
+        alert("Network error or server down.");
     }
 });
 

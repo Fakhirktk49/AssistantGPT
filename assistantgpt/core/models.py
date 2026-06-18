@@ -64,12 +64,13 @@ class Chat(models.Model):
     user=models.ForeignKey(CustomUser,on_delete=models.CASCADE)
     id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
     title=models.CharField(max_length=255)
+    created_at=models.DateTimeField(auto_now_add=True,null=True)
 
 class MessagesTable(models.Model):
     chat=models.ForeignKey(Chat,on_delete=models.CASCADE)
     msg=models.TextField()
     role=models.CharField(choices=ROLE_CHOICES)
-
+    created_at=models.DateTimeField(auto_now_add=True,null=True)
     
     
     
