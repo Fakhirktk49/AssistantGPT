@@ -2,6 +2,16 @@ from django.shortcuts import render
 import json
 from openai import OpenAI
 from django.http import JsonResponse
+from .forms import RegisterForm
+from django.contrib import messages
+from django.utils.http import urlsafe_base64_decode,urlsafe_base64_encode
+from django.utils.encoding import force_bytes,force_str
+from django.urls import reverse
+from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
+from django.shortcuts import redirect
+from django.contrib.auth import authenticate,login
+
 
 # Create your views here.
 def home(request):
@@ -78,5 +88,30 @@ def login(request):
      return render(request,'assistant_gpt/login.html')
 
 def register(request):
-     return render(request,'assistant_gpt/register.html')
+      try:
+        if request.method == 'POST':
+            form=RegisterForm(request.POST)
+            print(form.errors)
+            if form.is_valid():
+                password=form.cleaned_data['password']
+                user=form.save(commit=False)
+                user.set_password(password)
+                user.save()
+
+                id=user.id
+                email=user.email
+                uid=urlsafe_base64_encode(force_bytes(id))
+                token=default_token_generator.make_token(user)
+            #    url=reverse('activate_account',kwargs={'uid':uid,'token':token})
+            #     redirect_url=f'{settings.SITE_URL}{url}'
+            #     email_sender(redirect_url,email)
+                messages.success(request,'Activation link has been sent to your email click on it to activate your account.')
+                return redirect('home')
+        else:  
+            form=RegisterForm()
+      except Exception as e:
+            print(e)
+            messages.error(request,'Some exception occured.Try again.')
+            return redirect('home')
+      return render(request,'assistant_gpt/register.html',{'form':form})
 

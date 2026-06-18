@@ -26,61 +26,44 @@
             </p>
 
             <!-- FORM -->
-            <form method="POST" class="space-y-4">
+            <form method="POST" class="space-y-4" novalidate>
 
                 {% csrf_token %}
+                {% if form.non_field_errors %}
+                {% for error in form.non_field.errors %}
+                <span class="text-red-600 text-sm mt-1"> {{error}}<br></span>
+                {% endfor %}
+                {% endif %}
 
                 <!-- USERNAME -->
+                 {% for field in form %}
                 <div>
-                    <label class="text-sm text-gray-300">
-                        Email
+                    <label class="text-sm text-gray-300" for="{{field.id_for_label}}" >
+                        {{field.label}}
                     </label>
 
-                    <input type="email"
-                           name="email"
+                    <input type="{{field.field.widget.input_type}}"
+                           name="{{field.html_name}}"
+                           id="{{field.id_for_label}}"
                            required
-                           class="w-full mt-1 p-3 rounded-xl
-                                  bg-[#2a2a2a] text-white
-                                  outline-none focus:ring-2
-                                  focus:ring-green-500">
+                           class="{{field.field.widget.attrs.class}}">
                 </div>
 
-                <!-- PASSWORD -->
-                <div>
-                    <label class="text-sm text-gray-300">
-                        Password
-                    </label>
+                {% if field.errors %}
+                {% for error in field.errors %}
+                <span class="text-red-600 text-sm mt-1"> {{error}}<br></span>
+                {% endfor %}
+                {% endif %}
+                {% endfor %}
 
-                    <input type="password"
-                           name="password"
-                           required
-                           class="w-full mt-1 p-3 rounded-xl
-                                  bg-[#2a2a2a] text-white
-                                  outline-none focus:ring-2
-                                  focus:ring-green-500">
-                </div>
-
-                 <!--  CONFIRM PASSWORD -->
-                <div>
-                    <label class="text-sm text-gray-300">
-                        Confirm Password
-                    </label>
-
-                    <input type="conf_password"
-                           name="conf_password"
-                           required
-                           class="w-full mt-1 p-3 rounded-xl
-                                  bg-[#2a2a2a] text-white
-                                  outline-none focus:ring-2
-                                  focus:ring-green-500">
-                </div>
+               
 
                 <!-- BUTTON -->
                 <button type="submit"
                         class="w-full bg-white text-black
                                py-3 rounded-xl font-semibold
                                hover:bg-gray-200 transition">
-                    Login
+                    Register
                 </button>
 
             </form>
