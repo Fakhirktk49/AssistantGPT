@@ -14,6 +14,7 @@ from django.contrib.auth import authenticate,login
 from .utils import email_sender
 from core.models import CustomUser,Chat
 import json
+from decouple import config
 
 
 # Create your views here.
@@ -32,7 +33,7 @@ def home(request):
 
                 messages.append({'role':'user','content':f'prompt is in between "@3$32$#" give answer to it with in limit of 70 tokens.:@3$32$#{prompt}@3$32$#'})
                 print(messages)         
-                client=OpenAI(api_key="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")
+                client=OpenAI(api_key=config('API_KEY'))
                 responses=client.chat.completions.create(model='gpt-4.1-mini',
                                             messages=messages,
                                             temperature=0,
@@ -63,7 +64,7 @@ def home(request):
                 prompt=data['text']
                 messages=[{'role':'system','content':"You are trained so that you are personal assistant.Give answer whatever is asked."},
                         {'role':'user','content':prompt}]
-                client=OpenAI(api_key="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")
+                client=OpenAI(api_key=config('API_KEY'))
                 responses=client.chat.completions.create(model='gpt-4.1-mini',
                                             messages=messages,
                                             temperature=0,
