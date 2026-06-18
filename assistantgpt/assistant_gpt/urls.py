@@ -1,8 +1,12 @@
 from django.urls import path
-from assistant_gpt.views import home,login,register
+from assistant_gpt.views import home,login,register,activate_account,loginview
+from django.contrib.auth.views import LogoutView
 
 urlpatterns=[
     path('home/',home,name='home'),
-    path('login/',login,name='login'),
-    path('register/',register,name='register')
+    path('login/',loginview,name='login'),
+    path('register/',register,name='register'),
+    path('activate_account/<str:uid>/<str:token>/',activate_account,name='activate_account'),
+    path('logout',LogoutView.as_view(),name='logout')
+
 ]

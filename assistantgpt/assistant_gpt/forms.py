@@ -1,6 +1,7 @@
 from django import forms
 from core.models import CustomUser
 from django.core.validators import RegexValidator
+from core.models import CustomUser
 
 
 
@@ -17,7 +18,15 @@ class RegisterForm(forms.ModelForm):
         fields=['email']
 
         widgets={
-            'email':forms.TextInput(attrs={'class':"w-full mt-1 p-3 rounded-xl bg-[#2a2a2a] text-white outline-none focus:ring-2 focus:ring-green-500"})
+            'email':forms.EmailInput(attrs={'class':"w-full mt-1 p-3 rounded-xl bg-[#2a2a2a] text-white outline-none focus:ring-2 focus:ring-green-500"})
         }
 
         
+    def clean_email(self):
+        email=self.cleaned_data.get('email')
+        
+        if CustomUser.objects.filter(email=email).exists():
+            raise ValueError("This Email has already been registered.")
+        
+        return email
+    

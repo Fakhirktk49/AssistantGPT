@@ -11,6 +11,8 @@ from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.shortcuts import redirect
 from django.contrib.auth import authenticate,login
+from .utils import email_sender
+from core.models import CustomUser
 
 
 # Create your views here.
@@ -84,8 +86,7 @@ def home(request):
 
     return render(request,'assistant_gpt/home.html')
 
-def login(request):
-     return render(request,'assistant_gpt/login.html')
+
 
 def register(request):
       try:
@@ -102,9 +103,9 @@ def register(request):
                 email=user.email
                 uid=urlsafe_base64_encode(force_bytes(id))
                 token=default_token_generator.make_token(user)
-            #    url=reverse('activate_account',kwargs={'uid':uid,'token':token})
-            #     redirect_url=f'{settings.SITE_URL}{url}'
-            #     email_sender(redirect_url,email)
+                url=reverse('activate_account',kwargs={'uid':uid,'token':token})
+                redirect_url=f'{settings.SITE_URL}{url}'
+                email_sender(redirect_url,email)
                 messages.success(request,'Activation link has been sent to your email click on it to activate your account.')
                 return redirect('home')
         else:  
@@ -114,4 +115,74 @@ def register(request):
             messages.error(request,'Some exception occured.Try again.')
             return redirect('home')
       return render(request,'assistant_gpt/register.html',{'form':form})
+
+def activate_account(request,uid,token):
+    try:
+        id=force_str(urlsafe_base64_decode(uid))
+        user=CustomUser.objects.filter(id=id).first()
+        if not user:
+            messages.error(request,'Invalid link.')
+            return redirect('login')
+        else:
+            if default_token_generator.check_token(user,token):
+                if user.is_active is True:
+                    messages.debug(request,'This user has already been activated.')
+                    return redirect('login')
+                else:
+                    user.is_active=True
+                    user.save()
+                    messages.success(request,'Your account has been successfully activated.')
+                    return redirect('login')
+                
+            else:
+                messages.error(request,'Invalid link or it has been expired.')
+                return redirect('login')
+
+
+    except:
+        messages.error('Invalid link or it has been expired.')
+        return redirect('login')
+
+def loginview(request):
+    if request.user.is_authenticated:
+        return redirect('home')
+
+    if request.method == 'POST':
+        email=request.POST.get('email')
+        password=request.POST.get('password')
+        print(email)
+        print(password)
+
+        if not email or not password:
+            messages.error(request,'Email is required.')
+            return redirect('login')
+        
+        else:
+            try:
+                user=authenticate(request,email=email,password=password)
+                print(user)
+            except:
+                messages.error(request,'Invalid email or passwrod.1')
+                return redirect('login')
+        
+        if user:
+            if user.is_active is not True:
+                messages.error(request,'User is not Activated.')
+                return redirect('login')
+            
+            if user is not None:
+                login(request,user)
+                return redirect('home')
+            
+            else:
+                messages.error(request,'Invalid email or password.2')
+                return redirect('login')
+        
+        else:
+            messages.error(request,'Invalid email or password.0')
+            return redirect('login')
+              
+            
+    return render(request,'assistant_gpt/login.html')
+
 

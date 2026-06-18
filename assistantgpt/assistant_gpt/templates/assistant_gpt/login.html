@@ -30,11 +30,12 @@
                 <!-- USERNAME -->
                 <div>
                     <label class="text-sm text-gray-300">
-                        Username
+                        Email
                     </label>
 
-                    <input type="text"
-                           name="username"
+                    <input type="email"
+                           name="email"
+                           id="email"
                            required
                            class="w-full mt-1 p-3 rounded-xl
                                   bg-[#2a2a2a] text-white
@@ -50,6 +51,7 @@
 
                     <input type="password"
                            name="password"
+                           id="password"
                            required
                            class="w-full mt-1 p-3 rounded-xl
                                   bg-[#2a2a2a] text-white
@@ -58,12 +60,11 @@
                 </div>
 
                 <!-- BUTTON -->
-                <button type="submit"
+                <input type="submit"
                         class="w-full bg-white text-black
                                py-3 rounded-xl font-semibold
-                               hover:bg-gray-200 transition">
-                    Login
-                </button>
+                               hover:bg-gray-200 transition" value="Login">
+               
 
             </form>
 

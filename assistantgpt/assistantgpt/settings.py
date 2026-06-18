@@ -124,3 +124,8 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE=True
 
 
 AUTH_USER_MODEL='core.CustomUser'
+SITE_NAME='AssistantGPT'
+SITE_URL='http://127.0.0.1:8000/'
+
+EMAIL_BACKEND='django.core.mail.backends.console.EmailBackend'
+LOGOUT_REDIRECT_URL='home'
