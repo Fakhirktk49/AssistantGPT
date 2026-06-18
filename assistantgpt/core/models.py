@@ -65,7 +65,7 @@ class Chat(models.Model):
     id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
     title=models.CharField(max_length=255)
 
-class Messages_table(models.Model):
+class MessagesTable(models.Model):
     chat=models.ForeignKey(Chat,on_delete=models.CASCADE)
     msg=models.TextField()
     role=models.CharField(choices=ROLE_CHOICES)

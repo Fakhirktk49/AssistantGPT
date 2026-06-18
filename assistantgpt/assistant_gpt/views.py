@@ -12,7 +12,8 @@ from django.contrib.auth.tokens import default_token_generator
 from django.shortcuts import redirect
 from django.contrib.auth import authenticate,login
 from .utils import email_sender
-from core.models import CustomUser
+from core.models import CustomUser,Chat
+import json
 
 
 # Create your views here.
@@ -185,4 +186,23 @@ def loginview(request):
             
     return render(request,'assistant_gpt/login.html')
 
+def create_chat(request):
+    data=json.loads(request.body)
+    title=data['title']
+    chat=Chat.objects.create(user=request.user,title=title)
+    response={'chat_id':chat.id}
+    return JsonResponse(data=response)
+
+def chats(request):
+    if request.user.is_authenticated:
+        user=request.user
+        chats=Chat.objects.select_related('user').filter(user=user).values('id','title').order_by('-reverse')
+       
+        chats=list(chats)
+        for c in chats:
+            c['id']=str(c['id'])
+        print(chats)
+        data={"chats":chats}
+        return JsonResponse(data)
+        
 

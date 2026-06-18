@@ -30,32 +30,53 @@
               transition-transform duration-200">
 
     <!-- NEW CHAT -->
-    <div class="p-3">
-        <button class="w-full bg-[#2f2f2f] hover:bg-[#3a3a3a]
-                       rounded-xl py-3 px-4 text-left">
-            + New Chat
-        </button>
+  <div class="p-3">
+    <button id="newChatBtn"
+            class="w-full bg-[#2f2f2f] hover:bg-[#3a3a3a]
+                   rounded-xl py-3 px-4 text-left">
+        + New Chat
+    </button>
+</div>
+<!-- New Chat Modal -->
+<div id="newChatModal"
+     class="hidden fixed inset-0 bg-black/50 z-50
+            flex items-center justify-center">
+
+    <div class="bg-[#171717] border border-[#2d2d2d]
+                rounded-2xl p-6 w-full max-w-md mx-4">
+
+        <h2 class="text-xl font-semibold mb-4">
+            Create New Chat
+        </h2>
+
+        <input type="text"
+               id="chatTitle"
+               placeholder="Enter chat title..."
+               class="w-full p-3 rounded-xl
+                      bg-[#2f2f2f] outline-none mb-4">
+
+        <div class="flex justify-end gap-3">
+
+            <button id="cancelChatBtn"
+                    class="px-4 py-2 rounded-xl bg-[#2f2f2f]">
+                Cancel
+            </button>
+
+            <button id="createChatBtn"
+                    class="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700">
+                Create
+            </button>
+
+        </div>
+
     </div>
 
-    <!-- CHAT HISTORY -->
-    <div class="flex-1 overflow-y-auto px-2">
+</div>
+<div id="chatList" class="flex-1 overflow-y-auto px-2 space-y-1 min-h-0"></div>
+ 
 
-        <div class="p-3 rounded-xl bg-[#2f2f2f] mb-2 cursor-pointer">
-            Welcome Chat
-        </div>
-
-        <div class="p-3 rounded-xl hover:bg-[#2a2a2a] mb-2 cursor-pointer">
-            Django Help
-        </div>
-
-        <div class="p-3 rounded-xl hover:bg-[#2a2a2a] mb-2 cursor-pointer">
-            Python Questions
-        </div>
-
-    </div>
-
-    <!-- PROFILE -->
-    <div class="border-t border-[#2d2d2d] p-4 flex items-center gap-3">
+    <!-- PROFILE (STAYS FIXED AT BOTTOM) -->
+    <div class="border-t border-[#2d2d2d] p-4 flex items-center gap-3 shrink-0">
 
         <img src="https://via.placeholder.com/40"
              class="w-10 h-10 rounded-full">
@@ -71,7 +92,6 @@
         </div>
 
     </div>
-
 </aside>
 {% endblock 'sidebar' %}
 <!-- MAIN AREA -->
@@ -314,7 +334,7 @@ async function loadChat(chatId){
 
     messages.innerHTML = "";
 
-    const res = await fetch(`/chat/${chatId}/messages/`);
+    const res = await fetch(`/chat/${chatId}/MessagesTable/`);
     const data = await res.json();
 
     data.messages.forEach(m => {
@@ -411,7 +431,7 @@ overlay.addEventListener("click", () => {
 /* LOAD CHATS INTO SIDEBAR */
 async function loadChats(){
 
-    const res = await fetch("/chats/");
+    const res = await fetch("/assistantgpt/chats/");
     const data = await res.json();
 
     const chatList = document.getElementById("chatList");
@@ -423,7 +443,7 @@ async function loadChats(){
         const div = document.createElement("div");
 
         div.className =
-            "p-3 rounded-xl hover:bg-[#2a2a2a] mb-2 cursor-pointer";
+    "px-3 py-2 rounded-lg cursor-pointer text-sm transition-colors hover:bg-[#2a2a2a]";
 
         div.innerText = c.title;
 
@@ -481,6 +501,80 @@ logoutModal.addEventListener("click", (e) => {
     }
 });
 
+const IS_AUTHENTICATED = {% if user.is_authenticated %}true{% else %}false{% endif %};
+
+const newChatBtn = document.getElementById("newChatBtn");
+const newChatModal = document.getElementById("newChatModal");
+const cancelChatBtn = document.getElementById("cancelChatBtn");
+const createChatBtn = document.getElementById("createChatBtn");
+const chatTitleInput = document.getElementById("chatTitle");
+
+/* OPEN MODAL */
+newChatBtn.addEventListener("click", () => {
+
+    if (!IS_AUTHENTICATED) {
+        alert("Please login first.");
+        return;
+    }
+
+    newChatModal.classList.remove("hidden");
+});
+
+/* CLOSE MODAL */
+cancelChatBtn.addEventListener("click", () => {
+    newChatModal.classList.add("hidden");
+    chatTitleInput.value = "";
+});
+
+/* CREATE CHAT */
+createChatBtn.addEventListener("click", async () => {
+
+    const title = chatTitleInput.value.trim();
+
+    if (!title) {
+        alert("Please enter a chat title.");
+        return;
+    }
+
+    try {
+
+        const res = await fetch("/assistantgpt/create_chat/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCSRF()
+            },
+            body: JSON.stringify({
+                title: title
+            })
+        });
+
+        const data = await res.json();
+
+        newChatModal.classList.add("hidden");
+        chatTitleInput.value = "";
+
+        await loadChats();
+
+        loadChat(data.chat_id);
+
+    } catch (err) {
+
+        console.error(err);
+        alert("Failed to create chat.");
+
+    }
+});
+
+/* CLOSE WHEN CLICKING OUTSIDE */
+newChatModal.addEventListener("click", (e) => {
+
+    if (e.target === newChatModal) {
+        newChatModal.classList.add("hidden");
+        chatTitleInput.value = "";
+    }
+
+});
 
 </script>
 {% endblock 'content' %}
