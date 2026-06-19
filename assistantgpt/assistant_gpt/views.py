@@ -12,11 +12,12 @@ from django.contrib.auth.tokens import default_token_generator
 from django.shortcuts import redirect
 from django.contrib.auth import authenticate,login
 from .utils import email_sender
-from core.models import CustomUser,Chat
+from core.models import CustomUser,Chat,MessagesTable
 import json
 from decouple import config
 from django.contrib.auth.decorators import login_required
 from django.utils.html import escape
+import uuid
 
 
 # Create your views here.
@@ -45,7 +46,7 @@ def home(request):
                                             )
 
                 response=responses.choices[0].message.content
-                json_result={"label":response}
+                #json_result={"label":response}
                 user_data=request.session.get('user_data')
                 id=list(user_data.keys())[-1]
                 id=int(id)
@@ -63,7 +64,9 @@ def home(request):
         try:
             if not 'user_data' in request.session:
                 data=json.loads(request.body)
-                prompt=data['text']
+                print(data)
+                prompt=data['message']
+                print(prompt)
                 messages=[{'role':'system','content':"You are trained so that you are personal assistant.Give answer whatever is asked."},
                         {'role':'user','content':prompt}]
                 client=OpenAI(api_key=config('API_KEY'))
@@ -86,7 +89,11 @@ def home(request):
         except Exception as e:
                 print(e)
                 error={'label':'some exception occured.'}
-                return JsonResponse(error,safe=False)
+                print("some exception occure right here")
+                return JsonResponse({'response':'Some Exception occured.'})
+    else:
+        chat=request.session.get('user_data')
+        print(f"---{chat}")
 
     return render(request,'assistant_gpt/home.html')
 
@@ -213,5 +220,21 @@ def chats(request):
         print(chats)
         data={"chats":chats}
         return JsonResponse(data)
+    
+    else:
+        return JsonResponse({'status':'ok'})
         
+def load_chat(request,chat_id):
+    if request.user.is_authenticated:
+        chat_id=uuid.UUID(chat_id)
+        chat=Chat.objects.filter(id=chat_id).first()
+        chat=MessagesTable.objects.select_related('chat').filter(chat=chat).values('role','content').order_by('created_at')
+        chat=list(chat)
+        print(chat)
+        return JsonResponse({'messages':chat})
+    
+    return render(request,'assistant_gpt/home.html',{'active_chat_id':chat_id})
+
+def url_chat(request,chat_id=None):
+    return render(request,'assistant_gpt/home.html')
 

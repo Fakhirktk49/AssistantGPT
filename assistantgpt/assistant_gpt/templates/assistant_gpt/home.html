@@ -297,16 +297,23 @@ const messages = document.getElementById("messages");
 
 const sidebar = document.getElementById("sidebar");
 const overlay = document.getElementById("overlay");
+const IS_AUTHENTICATED = {{ user.is_authenticated|yesno:"true,false" }};
 
 let controller = null;
 
 /* IMPORTANT: current active chat */
 let CURRENT_CHAT_ID = null;
 
-/* AUTO RESIZE */
+/* AUTO RESIZER */
 input.addEventListener("input", () => {
-    input.style.height = "auto";
-    input.style.height = input.scrollHeight + "px";
+
+    input.style.height = "auto"; // reset first
+
+    const maxHeight = 160; // optional limit (adjust as you like)
+
+    const newHeight = Math.min(input.scrollHeight, maxHeight);
+
+    input.style.height = newHeight + "px";
 });
 
 /* MESSAGE RENDER */
@@ -327,20 +334,65 @@ function addMessage(text, type){
     return div;
 }
 
-/* LOAD CHAT FROM DATABASE */
-async function loadChat(chatId){
+async function loadChat(chatId) {
+highlightSelectedChat(chatId);
+CURRENT_CHAT_ID = chatId;
 
-    CURRENT_CHAT_ID = chatId;
+window.history.pushState(
+    {},
+    "",
+    `/assistantgpt/chat/${chatId}/`
+);
 
-    messages.innerHTML = "";
+messages.innerHTML = "";
 
-    const res = await fetch(`/chat/${chatId}/MessagesTable/`);
+try {
+
+    let url = "";
+
+    // 🔥 LOGIC ADDED: choose endpoint based on login state
+    if (IS_AUTHENTICATED) {
+        url = `/assistantgpt/c/${chatId}/`;
+    } else {
+        url = `/assistantgpt/home/`;
+    }
+
+    const res = await fetch(url);
     const data = await res.json();
 
-    data.messages.forEach(m => {
-        addMessage(m.content, m.role);
+    if (data && Array.isArray(data.messages)) {
+
+        if (data.messages.length > 0) {
+            data.messages.forEach(m => {
+                addMessage(m.content, m.role);
+            });
+        } else {
+            addMessage("Start your conversation 👋", "bot");
+        }
+
+    } else {
+        addMessage("How can I assist you!", "bot");
+    }
+
+} catch (err) {
+    console.error(err);
+    addMessage("Failed to load chat", "bot");
+}
+}
+
+function highlightSelectedChat(chatId) {
+
+    document.querySelectorAll("[data-chat-id]").forEach(chat => {
+        chat.classList.remove("bg-[#2a2a2a]");
     });
 
+    const activeChat = document.querySelector(
+        `[data-chat-id="${chatId}"]`
+    );
+
+    if (activeChat) {
+        activeChat.classList.add("bg-[#2a2a2a]");
+    }
 }
 
 /* SEND MESSAGE */
@@ -348,11 +400,6 @@ sendBtn.addEventListener("click", async () => {
 
     const text = input.value.trim();
     if (!text) return;
-
-    if (!CURRENT_CHAT_ID){
-        alert("Please select or create a chat first");
-        return;
-    }
 
     addMessage(text, "user");
     input.value = "";
@@ -366,7 +413,7 @@ sendBtn.addEventListener("click", async () => {
 
     try {
 
-        const res = await fetch("/chat/", {
+        const res = await fetch("/assistantgpt/home/", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -374,7 +421,7 @@ sendBtn.addEventListener("click", async () => {
             },
             body: JSON.stringify({
                 message: text,
-                chat_id: CURRENT_CHAT_ID   // 🔥 IMPORTANT FIX
+                chat_id: CURRENT_CHAT_ID || null
             }),
             signal: controller.signal
         });
@@ -395,7 +442,6 @@ sendBtn.addEventListener("click", async () => {
         sendBtn.classList.remove("hidden");
         stopBtn.classList.add("hidden");
     }
-
 });
 
 /* STOP BUTTON */
@@ -429,31 +475,61 @@ overlay.addEventListener("click", () => {
 });
 
 /* LOAD CHATS INTO SIDEBAR */
-async function loadChats(){
+async function loadChats() {
 
     const res = await fetch("/assistantgpt/chats/");
     const data = await res.json();
 
     const chatList = document.getElementById("chatList");
 
+    if (!chatList) return;
+
     chatList.innerHTML = "";
 
-    data.chats.forEach(c => {
+    // 🔥 if chats exist and not empty
+    if (data && Array.isArray(data.chats) && data.chats.length > 0) {
 
-        const div = document.createElement("div");
+        data.chats.forEach(c => {
 
-        div.className =
-    "px-3 py-2 rounded-lg cursor-pointer text-sm transition-colors hover:bg-[#2a2a2a]";
+            const div = document.createElement("div");
 
-        div.innerText = c.title;
+            div.className =
+                "px-3 py-2 rounded-lg cursor-pointer text-sm transition-colors hover:bg-[#2a2a2a]";
+            div.dataset.chatId = c.id;
+            div.innerText = c.title;
 
-        div.onclick = () => loadChat(c.id);
+            div.onclick = () => loadChat(c.id);
 
-        chatList.appendChild(div);
+            chatList.appendChild(div);
 
-    });
+            
 
+        });
+
+    } else {
+
+        // 🔥 if no chats
+        const empty = document.createElement("div");
+
+        empty.className = "text-gray-500 text-sm px-3 py-2";
+
+        empty.innerText = "Please login to retain chat history.";
+
+        chatList.appendChild(empty);
+    }
+
+      // After creating all chat divs
+    const match = window.location.pathname.match(
+        /\/assistantgpt\/chat\/([0-9a-fA-F-]+)\//
+    );
+
+    if (match) {
+        highlightSelectedChat(match[1]);
+    }
+
+    
 }
+
 
 /* CREATE NEW CHAT */
 async function newChat(){
@@ -482,26 +558,36 @@ const cancelLogout = document.getElementById("cancelLogout");
 const confirmLogout = document.getElementById("confirmLogout");
 const logoutForm = document.getElementById("logoutForm");
 
-logoutBtn.addEventListener("click", () => {
-    logoutModal.classList.remove("hidden");
-});
 
-cancelLogout.addEventListener("click", () => {
-    logoutModal.classList.add("hidden");
-});
 
-confirmLogout.addEventListener("click", () => {
-    logoutForm.submit();
-});
+if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+        logoutModal.classList.remove("hidden");
+    });
+}
+
+if (cancelLogout && logoutModal) {
+    cancelLogout.addEventListener("click", () => {
+        logoutModal.classList.add("hidden");
+    });
+}
+
+if (confirmLogout && logoutForm) {
+    confirmLogout.addEventListener("click", () => {
+        logoutForm.submit();
+    });
+}
 
 // Close modal when clicking outside
-logoutModal.addEventListener("click", (e) => {
-    if (e.target === logoutModal) {
-        logoutModal.classList.add("hidden");
-    }
-});
+if (logoutModal) {
+    logoutModal.addEventListener("click", (e) => {
+        if (e.target === logoutModal) {
+            logoutModal.classList.add("hidden");
+        }
+    });
+}
 
-const IS_AUTHENTICATED = {{ user.is_authenticated|yesno:"true,false" }};
+
 
 const newChatBtn = document.getElementById("newChatBtn");
 const newChatModal = document.getElementById("newChatModal");
@@ -519,6 +605,7 @@ newChatBtn.addEventListener("click", () => {
 
     newChatModal.classList.remove("hidden");
 });
+
 
 /* CLOSE MODAL */
 cancelChatBtn.addEventListener("click", () => {
@@ -580,6 +667,17 @@ newChatModal.addEventListener("click", (e) => {
 
 });
 
+window.addEventListener("DOMContentLoaded", () => {
+
+    const match = window.location.pathname.match(
+        /\/assistantgpt\/chat\/([0-9a-fA-F-]+)\//
+    );
+
+    if (match) {
+        loadChat(match[1]);
+    }
+
+});
 </script>
 {% endblock 'content' %}
 </body>

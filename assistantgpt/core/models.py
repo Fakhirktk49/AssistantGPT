@@ -68,7 +68,7 @@ class Chat(models.Model):
 
 class MessagesTable(models.Model):
     chat=models.ForeignKey(Chat,on_delete=models.CASCADE)
-    msg=models.TextField()
+    content=models.TextField()
     role=models.CharField(choices=ROLE_CHOICES)
     created_at=models.DateTimeField(auto_now_add=True,null=True)
     
