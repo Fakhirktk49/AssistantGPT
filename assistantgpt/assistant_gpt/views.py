@@ -25,6 +25,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 @ensure_csrf_cookie
 def home(request):
     if not request.user.is_authenticated:
+        user_details=None
         if request.method == 'POST':
             try:
                 if 'user_data' in request.session:
@@ -94,6 +95,7 @@ def home(request):
             
     
     if request.user.is_authenticated:
+        user_details=request.user
         if request.method == 'POST':
             try:
                 data=json.loads(request.body)
@@ -127,7 +129,7 @@ def home(request):
             except Exception as e:
                 print(e)
                 return JsonResponse({'response':'Network Error.'})
-    return render(request,'assistant_gpt/home.html')
+    return render(request,'assistant_gpt/home.html',{'user':user_details})
 
 def session_chat(request):
       try:

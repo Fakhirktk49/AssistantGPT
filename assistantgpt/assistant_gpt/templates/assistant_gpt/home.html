@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block 'title' %}AssistantGPT{% endblock 'title' %}</title>
+{% load custom_filters %}
 
 <script src="https://cdn.tailwindcss.com"></script>
 
@@ -77,13 +78,27 @@
 
     <!-- PROFILE (STAYS FIXED AT BOTTOM) -->
     <div class="border-t border-[#2d2d2d] p-4 flex items-center gap-3 shrink-0">
-
-        <img src="https://via.placeholder.com/40"
+        {% if user.profile_image %}
+          <img src="{{user.profile_image.url}}"
              class="w-10 h-10 rounded-full">
+
+        {% endif %}
+        {% if not user.profile_image %}
+          <img src="https://via.placeholder.com/40"
+             class="w-10 h-10 rounded-full">
+            {% endif %}
+
+      
 
         <div>
             <div class="font-semibold text-sm">
-                {{ request.user.username }}
+                {% if user.name %}
+                {{user.name}}
+                {% endif %}
+
+                {% if not user.name %}
+                {{ user.email|get_temp_name }}
+                {% endif %}
             </div>
 
             <div class="text-xs text-gray-400">
