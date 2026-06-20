@@ -18,15 +18,17 @@ from decouple import config
 from django.contrib.auth.decorators import login_required
 from django.utils.html import escape
 import uuid
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 
 # Create your views here.
+@ensure_csrf_cookie
 def home(request):
     if request.method == 'POST':
         try:
             if 'user_data' in request.session:
                 data=json.loads(request.body)
-                prompt=data['text']
+                prompt=data['message']
                 user_data=request.session.get('user_data')
                 messages=[{'role':'system','content':"You are trained so that you are personal assistant.Give answer whatever is asked."}]
                 for key,values in user_data.items():
@@ -34,14 +36,13 @@ def home(request):
                     messages.append({'role':'user','content':question})
                     messages.append({'role':'assistant','content':response})
 
-                messages.append({'role':'user','content':f'prompt is in between "@3$32$#" give answer to it with in limit of 70 tokens.:@3$32$#{prompt}@3$32$#'})
+                messages.append({'role':'user','content':prompt})
                 print(messages)         
                 client=OpenAI(api_key=config('API_KEY'))
-                responses=client.chat.completions.create(model='gpt-4.1-mini',
+                responses=client.chat.completions.create(model='gpt-5.4-mini',
                                             messages=messages,
                                             temperature=0,
                                             n=1,
-                                            max_tokens=70,
                                             stop=None,
                                             )
 
@@ -55,11 +56,11 @@ def home(request):
                 request.session['user_data']=user_data
                 updated_session=request.session.get('user_data')
                 print(updated_session)
-                return JsonResponse(json_result,safe=False)
+                return JsonResponse({'response':response})
         except Exception as e:
                     print(e)
                     error={'label':'when session some exception occured.'}
-                    return JsonResponse(error,safe=False)
+                    return JsonResponse({'response':'Some Exception occured.'})
         
         try:
             if not 'user_data' in request.session:
@@ -70,11 +71,10 @@ def home(request):
                 messages=[{'role':'system','content':"You are trained so that you are personal assistant.Give answer whatever is asked."},
                         {'role':'user','content':prompt}]
                 client=OpenAI(api_key=config('API_KEY'))
-                responses=client.chat.completions.create(model='gpt-4.1-mini',
+                responses=client.chat.completions.create(model='gpt-5.4-mini',
                                             messages=messages,
                                             temperature=0,
                                             n=1,
-                                            max_tokens=70,
                                             stop=None,
                                             )
 
@@ -84,18 +84,32 @@ def home(request):
                 request.session['user_data']=user_data
                 last=request.session.get("user_data")
                 print(f'without session:{last}')
-                return JsonResponse(json_result,safe=False)
+                return JsonResponse({'response':response})
 
         except Exception as e:
                 print(e)
                 error={'label':'some exception occured.'}
                 print("some exception occure right here")
                 return JsonResponse({'response':'Some Exception occured.'})
-    else:
-        chat=request.session.get('user_data')
-        print(f"---{chat}")
 
     return render(request,'assistant_gpt/home.html')
+
+def session_chat(request):
+      chat=request.session.get('user_data')
+      final_result=[]
+      if chat:    
+        for key,value in chat.items():
+            user,system=value.split("_")
+            chat_1={'role':'user','content':user}
+            final_result.append(chat_1)
+            chat_2={'role':'system','content':system}
+            final_result.append(chat_2)
+
+      print(final_result)
+        
+        
+      return JsonResponse({"messages":final_result})
+
 
 
 
@@ -235,6 +249,7 @@ def load_chat(request,chat_id):
     
     return render(request,'assistant_gpt/home.html',{'active_chat_id':chat_id})
 
+@ensure_csrf_cookie
 def url_chat(request,chat_id=None):
     return render(request,'assistant_gpt/home.html')
 

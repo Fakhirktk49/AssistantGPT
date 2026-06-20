@@ -316,6 +316,8 @@ input.addEventListener("input", () => {
     input.style.height = newHeight + "px";
 });
 
+
+
 /* MESSAGE RENDER */
 function addMessage(text, type){
 
@@ -354,7 +356,7 @@ try {
     if (IS_AUTHENTICATED) {
         url = `/assistantgpt/c/${chatId}/`;
     } else {
-        url = `/assistantgpt/home/`;
+        url = `/assistantgpt/home/session_chat/`;
     }
 
     const res = await fetch(url);
@@ -400,6 +402,11 @@ sendBtn.addEventListener("click", async () => {
 
     const text = input.value.trim();
     if (!text) return;
+
+    if (IS_AUTHENTICATED && !CURRENT_CHAT_ID) {
+    alert("Please create or select a chat first.");
+    return;
+}
 
     addMessage(text, "user");
     input.value = "";
@@ -668,6 +675,11 @@ newChatModal.addEventListener("click", (e) => {
 });
 
 window.addEventListener("DOMContentLoaded", () => {
+
+    if (!IS_AUTHENTICATED) {
+        loadChat();
+        return;
+    }
 
     const match = window.location.pathname.match(
         /\/assistantgpt\/chat\/([0-9a-fA-F-]+)\//
