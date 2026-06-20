@@ -262,7 +262,7 @@
 
         <!-- LEFT -->
         <p>
-            AssistantGPT © 2026 — Built by You
+            AssistantGPT © 2026 — Built by Fakhir Masood
         </p>
 
         <!-- RIGHT -->
@@ -314,6 +314,7 @@ input.addEventListener("input", () => {
     const newHeight = Math.min(input.scrollHeight, maxHeight);
 
     input.style.height = newHeight + "px";
+    
 });
 
 
@@ -407,6 +408,8 @@ sendBtn.addEventListener("click", async () => {
     alert("Please create or select a chat first.");
     return;
 }
+
+    input.style.height = "auto";
 
     addMessage(text, "user");
     input.value = "";

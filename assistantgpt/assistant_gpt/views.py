@@ -24,91 +24,129 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 # Create your views here.
 @ensure_csrf_cookie
 def home(request):
-    if request.method == 'POST':
-        try:
-            if 'user_data' in request.session:
-                data=json.loads(request.body)
-                prompt=data['message']
-                user_data=request.session.get('user_data')
-                messages=[{'role':'system','content':"You are trained so that you are personal assistant.Give answer whatever is asked."}]
-                for key,values in user_data.items():
-                    question,response=values.split('_')
-                    messages.append({'role':'user','content':question})
-                    messages.append({'role':'assistant','content':response})
+    if not request.user.is_authenticated:
+        if request.method == 'POST':
+            try:
+                if 'user_data' in request.session:
+                    data=json.loads(request.body)
+                    prompt=data['message']
+                    user_data=request.session.get('user_data')
+                    for key,values in user_data.items():
+                        question,response=values.split('_')
+                        messages.append({'role':'user','content':question})
+                        messages.append({'role':'assistant','content':response})
 
-                messages.append({'role':'user','content':prompt})
-                print(messages)         
-                client=OpenAI(api_key=config('API_KEY'))
-                responses=client.chat.completions.create(model='gpt-5.4-mini',
-                                            messages=messages,
-                                            temperature=0,
-                                            n=1,
-                                            stop=None,
-                                            )
+                    messages.append({'role':'user','content':prompt})
+                    print(messages)         
+                    client=OpenAI(api_key=config('API_KEY'))
+                    responses=client.chat.completions.create(model='gpt-5.4-mini',
+                                                messages=messages,
+                                                temperature=0,
+                                                n=1,
+                                                stop=None,
+                                                )
 
-                response=responses.choices[0].message.content
-                #json_result={"label":response}
-                user_data=request.session.get('user_data')
-                id=list(user_data.keys())[-1]
-                id=int(id)
-                id +=1
-                user_data[id]=f'{prompt}_{response}'
-                request.session['user_data']=user_data
-                updated_session=request.session.get('user_data')
-                print(updated_session)
-                return JsonResponse({'response':response})
-        except Exception as e:
+                    response=responses.choices[0].message.content
+                    #json_result={"label":response}
+                    user_data=request.session.get('user_data')
+                    id=list(user_data.keys())[-1]
+                    id=int(id)
+                    id +=1
+                    user_data[id]=f'{prompt}_{response}'
+                    request.session['user_data']=user_data
+                    updated_session=request.session.get('user_data')
+                    print(updated_session)
+                    return JsonResponse({'response':response})
+            except Exception as e:
+                        print(e)
+                        error={'label':'when session some exception occured.'}
+                        return JsonResponse({'response':'Some Exception occured.'})
+            
+            try:
+                if not 'user_data' in request.session:
+                    data=json.loads(request.body)
+                    print(data)
+                    prompt=data['message']
+                    print(prompt)
+                    messages=[{'role':'system','content':"You are trained so that you are personal assistant.Give answer whatever is asked.use proper emojis and other things etc. and do not use irrelevant chars or dashes.dont use stars or dashes"},
+                            {'role':'user','content':prompt}]
+                    client=OpenAI(api_key=config('API_KEY'))
+                    responses=client.chat.completions.create(model='gpt-5.4-mini',
+                                                messages=messages,
+                                                temperature=0,
+                                                n=1,
+                                                stop=None,
+                                                )
+
+                    response=responses.choices[0].message.content
+                    json_result={"label":response}
+                    user_data={1:f'{prompt}_{response}'}
+                    request.session['user_data']=user_data
+                    last=request.session.get("user_data")
+                    print(f'without session:{last}')
+                    return JsonResponse({'response':response})
+
+            except Exception as e:
                     print(e)
-                    error={'label':'when session some exception occured.'}
+                    error={'label':'some exception occured.'}
+                    print("some exception occure right here")
                     return JsonResponse({'response':'Some Exception occured.'})
-        
-        try:
-            if not 'user_data' in request.session:
+            
+    
+    if request.user.is_authenticated:
+        if request.method == 'POST':
+            try:
                 data=json.loads(request.body)
-                print(data)
                 prompt=data['message']
-                print(prompt)
-                messages=[{'role':'system','content':"You are trained so that you are personal assistant.Give answer whatever is asked."},
-                        {'role':'user','content':prompt}]
+                chat_id=data['chat_id']
+                chat=Chat.objects.filter(id=chat_id).first()
+                messages=[{'role':'system','content':"You are trained so that you are personal assistant.Give answer whatever is asked.use proper emojis and other things etc. and do not use irrelevant chars or dashes.do not use stars or dashes"}]
+                chat=MessagesTable.objects.select_related('chat').filter(chat=chat).order_by('created_at')
+                for chat in chat:
+                    role=chat.role
+                    content=chat.content
+                    another_msg={'role':role,'content':content}
+                    messages.append(another_msg)
+                messages.append({'role':'user','content':prompt})
+                print(messages)
                 client=OpenAI(api_key=config('API_KEY'))
                 responses=client.chat.completions.create(model='gpt-5.4-mini',
-                                            messages=messages,
-                                            temperature=0,
-                                            n=1,
-                                            stop=None,
-                                            )
+                                                    messages=messages,
+                                                    temperature=0,
+                                                    n=1,
+                                                    stop=None,
+                                                    )
+
 
                 response=responses.choices[0].message.content
-                json_result={"label":response}
-                user_data={1:f'{prompt}_{response}'}
-                request.session['user_data']=user_data
-                last=request.session.get("user_data")
-                print(f'without session:{last}')
+                chat=Chat.objects.filter(id=chat_id,user=request.user).first()
+                MessagesTable.objects.create(chat=chat,role='user',content=prompt)
+                MessagesTable.objects.create(chat=chat,role='system',content=response)
                 return JsonResponse({'response':response})
 
-        except Exception as e:
+            except Exception as e:
                 print(e)
-                error={'label':'some exception occured.'}
-                print("some exception occure right here")
-                return JsonResponse({'response':'Some Exception occured.'})
-
+                return JsonResponse({'response':'Network Error.'})
     return render(request,'assistant_gpt/home.html')
 
 def session_chat(request):
-      chat=request.session.get('user_data')
-      final_result=[]
-      if chat:    
-        for key,value in chat.items():
-            user,system=value.split("_")
-            chat_1={'role':'user','content':user}
-            final_result.append(chat_1)
-            chat_2={'role':'system','content':system}
-            final_result.append(chat_2)
+      try:
+            chat=request.session.get('user_data')
+            final_result=[]
+            if chat:    
+                for key,value in chat.items():
+                    user,system=value.split("_")
+                    chat_1={'role':'user','content':user}
+                    final_result.append(chat_1)
+                    chat_2={'role':'system','content':system}
+                    final_result.append(chat_2)
 
-      print(final_result)
-        
-        
-      return JsonResponse({"messages":final_result})
+            print(final_result)
+                
+            return JsonResponse({"messages":final_result})
+      except:
+        return JsonResponse({'response':'Some Exception occured.'})
+
 
 
 
